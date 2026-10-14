@@ -1,0 +1,9 @@
+# Build / OS
+*.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Build outputs
+staging/
+dist/

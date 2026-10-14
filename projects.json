@@ -1,0 +1,17 @@
+{
+  "comment": "Lista de proyectos CyboltDFIR que el ISO debe incluir. Cada uno se baja de su ultimo GitHub release y se extrae en staging/ antes de construir el ISO.",
+  "projects": [
+    {
+      "name": "triage",
+      "repo": "Beacon-Lab-IR/cybolt-dfir-triage",
+      "asset_pattern": "CyboltDFIR-Triage-v*.zip",
+      "extract_to": "."
+    },
+    {
+      "name": "uploader",
+      "repo": "Beacon-Lab-IR/cybolt-dfir-uploader",
+      "asset_pattern": "CyboltDFIR-Uploader-v*.zip",
+      "extract_to": "."
+    }
+  ]
+}
