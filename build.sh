@@ -6,6 +6,7 @@
 #   ./build.sh                       # ISO con los ultimos releases (auto version)
 #   ./build.sh 5.3.1                 # version personalizada del ISO
 #   ./build.sh --pin triage=5.3.1    # fija version de un proyecto especifico
+#                                     (repetir --pin para cada proyecto)
 #
 # Output:
 #   dist/CyboltDFIR-ISO-v<VERSION>.iso
@@ -13,26 +14,34 @@
 # Requiere:
 #   - gh CLI autenticado en GitHub
 #   - macOS (hdiutil makehybrid) o Linux (genisoimage)
+#   - bash 3.2+ (compatible con macOS default; NO usa declare -A ni arrays)
 #
 # El ISO es self-contained: incluye wizard de Triage + uploader + KAPE +
 # Targets/ + Tools/. Se monta como CD-ROM y se ejecuta desde ahi.
 
 set -euo pipefail
 
-# Parse args (soporta --pin proyecto=version)
-PINS=()
+# Asegurar que gh (brew) este en PATH
+export PATH="/opt/homebrew/bin:$PATH"
+
+# Parse args: --pin proyecto=version (repetible) y version del ISO
 ISO_VERSION=""
+PIN_TRIAGE=""
+PIN_UPLOADER=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --pin)
             shift
-            PINS+=("$1")
+            case "$1" in
+                triage=*)   PIN_TRIAGE="${1#triage=}"   ;;
+                uploader=*) PIN_UPLOADER="${1#uploader=}" ;;
+            esac
             shift
-            ;;
+        ;;
         *)
             ISO_VERSION="$1"
             shift
-            ;;
+        ;;
     esac
 done
 
@@ -41,15 +50,28 @@ if [ -z "$ISO_VERSION" ]; then
     echo ">>> ISO version no especificada, usando $ISO_VERSION"
 fi
 
-# Cargar pins
-declare -A PINNED
-for p in "${PINS[@]:-}"; do
-    if [ -n "$p" ]; then
-        KEY="${p%=*}"
-        VAL="${p#*=}"
-        PINNED["$KEY"]="$VAL"
-    fi
-done
+# Helper para resolver el tag segun pin
+resolve_tag() {
+    local proj="$1"
+    case "$proj" in
+        triage)
+            if [ -n "$PIN_TRIAGE" ]; then
+                echo "$PIN_TRIAGE"
+            else
+                gh release view --repo "Beacon-Lab-IR/cybolt-dfir-triage" \
+                    --json tagName -q .tagName 2>/dev/null | sed 's/^v//'
+            fi
+        ;;
+        uploader)
+            if [ -n "$PIN_UPLOADER" ]; then
+                echo "$PIN_UPLOADER"
+            else
+                gh release view --repo "Beacon-Lab-IR/cybolt-dfir-uploader" \
+                    --json tagName -q .tagName 2>/dev/null | sed 's/^v//'
+            fi
+        ;;
+    esac
+}
 
 echo "==================================================================="
 echo "  Building CyboltDFIR ISO v$ISO_VERSION"
@@ -114,15 +136,10 @@ for p in $PROJECTS; do
     pattern=$(echo "$ASSET_PATTERNS" | cut -d' ' -f$((i+1)))
 
     # Determinar tag: pinned o latest
-    if [ -n "${PINNED[$p]:-}" ]; then
-        tag="${PINNED[$p]}"
-        echo "    $p: pin a v$tag"
+    tag=$(resolve_tag "$p")
+    if [ -n "$tag" ]; then
+        echo "    $p: v$tag"
     else
-        tag=$(gh release view --repo "$repo" --json tagName -q .tagName 2>/dev/null | sed 's/^v//')
-        echo "    $p: latest = v$tag"
-    fi
-
-    if [ -z "$tag" ]; then
         echo "    ERROR: no se pudo resolver tag para $p en $repo"
         exit 1
     fi
