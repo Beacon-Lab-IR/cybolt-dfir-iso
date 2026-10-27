@@ -3,13 +3,16 @@
 # en un ISO booteable. El ISO no compila nada, solo empaqueta.
 #
 # Uso:
-#   ./build.sh                       # ISO con los ultimos releases (auto version)
-#   ./build.sh 5.3.1                 # version personalizada del ISO
-#   ./build.sh --pin triage=5.3.1    # fija version de un proyecto especifico
-#                                     (repetir --pin para cada proyecto)
+#   ./build.sh                       # version del header de VERSION.txt + latest deps
+#   ./build.sh 0.2.0                 # fuerza version del ISO
+#   ./build.sh --pin triage=0.3.2    # fija version de un proyecto especifico
+#   ./build.sh --pin uploader=0.2.0  # (repetir --pin para cada proyecto)
 #
 # Output:
 #   dist/CyboltDFIR-ISO-v<VERSION>.iso
+#
+# Una sola version del ISO: tag git = nombre del asset = header VERSION.txt.
+# Los proyectos embebidos (triage/uploader) ya unificaron a 0.x tambien.
 #
 # Requiere:
 #   - gh CLI autenticado en GitHub
@@ -46,8 +49,15 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$ISO_VERSION" ]; then
-    ISO_VERSION="0.1.0"
-    echo ">>> ISO version no especificada, usando $ISO_VERSION"
+    if [ -f VERSION.txt ]; then
+        ISO_VERSION=$(grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+' VERSION.txt | head -1 | sed 's/^v//')
+    fi
+    if [ -z "$ISO_VERSION" ]; then
+        echo "ERROR: no se pudo detectar la version de VERSION.txt"
+        echo "Pasala como argumento: $0 0.2.0"
+        exit 1
+    fi
+    echo ">>> ISO version desde VERSION.txt: $ISO_VERSION"
 fi
 
 # Helper para resolver el tag segun pin

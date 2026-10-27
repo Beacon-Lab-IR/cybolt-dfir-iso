@@ -1,0 +1,12 @@
+CYBOLT-DFIR-ISO-v0.2.0.iso - Version 0.2.0
+
+Build       : 2026-10-27
+
+Este ISO no compila codigo: empaqueta los ultimos releases de
+cybolt-dfir-triage + cybolt-dfir-uploader.
+
+Cambios en esta version:
+  - (v0.2.0) CHORE: una sola version (tag = ISO). build.sh lee el header
+                  de este archivo. Ejemplos y pins usan 0.x (ya no 5.x).
+                  Incluye triage >= 0.3.2 y uploader >= 0.2.0.
+  - (v0.1.0) Proyecto independiente (split desde monorepo).
